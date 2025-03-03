@@ -1,6 +1,6 @@
 import torch
 import torchani
-from torchani.neighbors import FullPairwise
+from torchani.neighbors import AllPairs
 from torchani.tuples import SpeciesCoordinates
 from torchani.utils import PERIODIC_TABLE
 
@@ -15,15 +15,7 @@ import typing as tp
 import tempfile
 from collections import Counter
 
-from ani_forces import ANIForceCalculator
-
-calculator = ANIForceCalculator(model_name="ANI2xr", device="cuda", threshold=0.5)
-species, coordinates, good_or_bad = calculator.process_dataset("input.h5")
-
-if species.shape[0] == 0:
-    print("No structures met the weighted_stdev > 3.5 threshold. Exiting.")
-else:
-    print(f"Filtered dataset with {species.shape[0]} structures passed for isolation.")
+from .ani_forces import ANIForceCalculator
 
 class Isolator:
     def __init__(self, model, cutoff: float = 5.2, threshold: float = 0.5):
@@ -194,3 +186,12 @@ class Isolator:
                 self.neighbors = self.get_neighbors(bad_atoms)
                 self.process_molecule(bad_atoms)
                 self.molecule = self.create_rdkit_mol()
+
+if __name__ == "__main__":
+    calculator = ANIForceCalculator(model_name="ANI2xr", threshold=0.5)
+    #species, coordinates, good_or_bad = calculator.process_dataset("input.h5")
+
+    #if species.shape[0] == 0:
+    #    print("No structures met the weighted_stdev > 3.5 threshold. Exiting.")
+    #else:
+    #    print(f"Filtered dataset with {species.shape[0]} structures passed for isolation.")

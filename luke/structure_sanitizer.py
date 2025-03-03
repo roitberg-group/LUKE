@@ -7,7 +7,7 @@
 
 import numpy as np
 from scipy.spatial import distance_matrix
-from .io import read_xyz, write_xyz
+from .io_utils import read_xyz, write_xyz
 import rdkit.Chem
 
 def compute_connectivity(coordinates, threshold=1.8):

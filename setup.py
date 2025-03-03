@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
 setup(
     name="luke",  # Package name
@@ -6,7 +7,7 @@ setup(
     author="Nick Terrel",
     author_email="nterrel@ufl.com",
     description="LUKE: USE the Forces - Molecular fragmentation for active learning in ANI",
-    long_description=open("README.md").read(),
+    long_description=Path(__file__).parent.joinpath("README.md").read_text(),
     long_description_content_type="text/markdown",
     url="https://github.com/roitberg-group/LUKE",
     packages=find_packages(),  # Automatically find packages
@@ -18,7 +19,7 @@ setup(
         "pandas",
         "tqdm"
     ],
-    python_requires=">=3.11",
+    python_requires=">=3.10",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
