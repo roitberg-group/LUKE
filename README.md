@@ -24,6 +24,7 @@ LUKE relies on TorchANI as an external module, stored as a submodule:
 git clone --recursive git@github.com:roitberg-group/LUKE.git
 cd LUKE
 git submodule update --init --recursive
+pip install -v -e .
 ```
 
 ## Usage
