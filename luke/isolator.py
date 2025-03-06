@@ -189,8 +189,9 @@ class Isolator:
 
 if __name__ == "__main__":
     calculator = ANIForceCalculator(model_name="ANI2xr", threshold=0.5)
-    #species, coordinates, good_or_bad = calculator.process_dataset("input.h5")
 
+    #for species, coordinates, good_or_bad, energy, qbc in calculator.process_dataset("input.h5", for_pipeline=True):
+    #    isolator.process(species, coordinates, good_or_bad)
     #if species.shape[0] == 0:
     #    print("No structures met the weighted_stdev > 3.5 threshold. Exiting.")
     #else:
