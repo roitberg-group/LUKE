@@ -1,5 +1,7 @@
 # LUKE: USE the Forces
 
+## NOTE: This is a pre-release, the scripts here do not fully cooperate yet. Each step in the protocol currently exists as standalone scripts, and the pipeline is under construction.
+
 ## "Largest Uncertainty Kaleidoscope Estimator: Uncertainty-driven Sampling of high-Error Forces"
 
 LUKE: USE the Forces is a molecular fragmentation protocol designed to improve active learning in machine-learned interatomic potential models. Built on **TorchANI**, LUKE identifies atomic environments with high force uncertainty and fragments molecules around them, generating smaller molecular systems to enhance training data diversity.
