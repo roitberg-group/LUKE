@@ -5,7 +5,7 @@ setup(
     name="luke",  # Package name
     version="0.1.0",
     author="Nick Terrel",
-    author_email="nterrel@ufl.com",
+    author_email="nickterrel4@gmail.com",
     description="LUKE: USE the Forces - Molecular fragmentation for active learning in ANI",
     long_description=Path(__file__).parent.joinpath("README.md").read_text(),
     long_description_content_type="text/markdown",
@@ -26,4 +26,3 @@ setup(
         "Operating System :: OS Independent",
     ],
 )
-
