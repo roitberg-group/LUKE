@@ -1,6 +1,9 @@
 .idea
 __pycache__
+.pytest_cache
 luke.egg-info
+.DS_Store
+*/.DS_Store
 
 *.xyz
 *.h5

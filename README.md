@@ -2,8 +2,9 @@
 
 ## NOTE: This is a pre-release, the scripts here do not fully cooperate yet. Each step in the protocol currently exists as standalone scripts, and the pipeline is under construction
 
-## "Largest Uncertainty Kaleidoscope Estimator: Uncertainty-driven Sampling of high-Error Forces"
+## Largest Uncertainty Kaleidoscope Estimator: Uncertainty-driven Sampling of high-Error Forces
 
+Yes, I fit the acronym to the title of the project.
 LUKE: USE the Forces is a molecular fragmentation protocol designed to improve active learning in machine-learned interatomic potential models. Built on **TorchANI**, LUKE identifies atomic environments with high force uncertainty and fragments molecules around them, generating smaller molecular systems to enhance training data diversity.
 
 ## Overview
@@ -34,6 +35,22 @@ git submodule update --init --recursive
 pip install -v -e .
 ```
 
+## Command-line interface
+
+After installation, a console command `luke` is available.
+
+- Run full pipeline:
+
+```bash
+luke pipeline example_structures/test_mol.xyz -o results --model ANI2xr --device cpu --threshold 0.5
+```
+
+- Or directly via Python module:
+
+```bash
+python -m luke.cli pipeline example_structures/test_mol.xyz -o results
+```
+
 ## Usage
 
 LUKE is designed to be integrated into molecular simulation and machine learning workflows. Below is an example of how to use the pipeline:
@@ -52,15 +69,119 @@ This command will:
 4. Sanitize the resulting structures.
 5. Save the output to the specified directory.
 
+## Detailed Usage Examples
+
+### Running the Full Pipeline
+
+To execute the LUKE pipeline, use the `run.py` script. Below is an example:
+
+```bash
+python run.py --input example_structures/test_mol.xyz --output results/
+```
+
+This command will:
+
+1. **Read the Input File**:
+   - Parses the molecular structure from the specified XYZ file.
+
+2. **Run ANI Forces**:
+   - Computes atomic forces and identifies high-uncertainty atoms using the ANI model.
+
+3. **Isolate High-Error Atoms**:
+   - Fragments molecules around high-error atoms to generate smaller substructures.
+
+4. **Sanitize Structures**:
+   - Ensures chemical viability of the fragmented structures.
+
+5. **Save Results**:
+   - Outputs the sanitized structures and logs to the specified directory.
+
+### Running Individual Modules
+
+Each module in LUKE can be executed independently. Below are examples for running specific modules:
+
+#### 1. **ANI Forces**
+
+```bash
+python -m luke.ani_forces --dataset example_structures/test_mol.xyz --model ANI2xr --device cuda --batch_size 1000
+```
+
+- **Parameters**:
+  - `--dataset`: Path to the input dataset (HDF5 or XYZ format).
+  - `--model`: ANI model to use (default: `ANI2xr`).
+  - `--device`: Device for computation (`cuda` or `cpu`).
+  - `--batch_size`: Number of structures processed per batch.
+
+#### 2. **Structure Sanitizer**
+
+```bash
+python -m luke.structure_sanitizer --input results/high_error_atoms.xyz --output results/sanitized_structures.xyz
+```
+
+- **Parameters**:
+  - `--input`: Path to the input XYZ file.
+  - `--output`: Path to save the sanitized XYZ file.
+
+### Example Dataset
+
+An example dataset is provided in the `example_structures/` directory. Use `test_mol.xyz` to test the pipeline:
+
+```bash
+python run.py --input example_structures/test_mol.xyz --output results/
+```
+
+This will generate:
+
+- Fragmented molecular structures in the `results/` directory.
+- Logs and intermediate results for debugging.
+
+## Troubleshooting
+
+If you encounter issues while using LUKE, here are some common problems and their solutions:
+
+- **Problem**: `torchani` submodule is not initialized.
+  - **Solution**: Run the following commands to initialize the submodule:
+
+    ```bash
+    git submodule update --init --recursive
+    ```
+
+- **Problem**: Missing dependencies.
+  - **Solution**: Ensure you have installed all dependencies listed in `environment.yaml` or `requirements.txt`.
+
+- **Problem**: CUDA device not available.
+  - **Solution**: Check if your system has a compatible GPU and CUDA installed. If not, use the `--device cpu` flag.
+
+## Detailed Input/Output Formats
+
 ### Input Formats
 
-- **HDF5**: Hierarchical data format for large datasets.
-- **XYZ**: Standard molecular structure format.
+1. **HDF5**:
+   - Hierarchical data format for large datasets, must be formatted to TorchANI dataset standards.
+   - Contains molecular structures, atomic species, and coordinates.
 
-### Output
+2. **XYZ**:
+   - Standard molecular structure format.
+   - Example:
 
-- Fragmented molecular structures in XYZ format.
-- Logs and intermediate results for debugging and analysis.
+     ```xyz
+     3
+     Comment line
+     H 0.0 0.0 0.0
+     O 0.0 0.0 1.0
+     H 1.0 0.0 0.0
+     ```
+
+### Output Formats
+
+1. **Fragmented Structures**:
+   - XYZ files containing smaller molecular fragments.
+
+2. **Logs**:
+   - Detailed logs for debugging and analysis.
+
+3. **Intermediate Results**:
+   - Stored in the specified output directory for further inspection.
 
 ## Dependencies
 
