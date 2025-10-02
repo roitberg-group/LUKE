@@ -5,9 +5,17 @@ from torchani.utils import PERIODIC_TABLE
 
 import ase
 from ase.io import read
-import openbabel
-from openbabel import pybel
-from rdkit import Chem
+try:
+    import openbabel  # type: ignore
+    from openbabel import pybel  # type: ignore
+except Exception:  # pragma: no cover
+    openbabel = None
+    pybel = None
+
+try:
+    from rdkit import Chem  # type: ignore
+except Exception:  # pragma: no cover
+    Chem = None  # type: ignore
 
 import numpy as np
 import typing as tp
@@ -30,7 +38,7 @@ class Isolator:
         self.numpy_species = None
         self.numpy_coordinates = None
 
-        self.molecule: tp.Optional[Chem.Mol] = None
+        self.molecule: tp.Optional[object] = None
         self.model = model
 
     @classmethod
@@ -76,13 +84,16 @@ class Isolator:
     def create_rdkit_mol(
         self,
         return_smiles: bool = True,
-    ) -> Chem.rdchem.Mol:
+    ) -> tp.Optional[object]:
         """
         This function does the following:
         * Writes a temp file to read/store xyz information
         * Reads the temp file with openbabel to create a mol2 object (includes connectivity information)
         * Converts the obabel mol2 object into a rdkit.Chem molecule to print the SMILES return the molecule
         """
+        if pybel is None or Chem is None:
+            print("WARNING: RDKit/OpenBabel not installed. Skipping molecule creation.")
+            return None
         with tempfile.NamedTemporaryFile("w+") as f:
             f.write(f"{len(self.symbols)}\n")
             f.write("\n")
