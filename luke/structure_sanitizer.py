@@ -1,56 +1,97 @@
-"""
-structure_sanitizer.py: Processes molecular structures to ensure chemical viability.
+"""Sanitization utilities: keep the largest connected component by distance cutoff.
 
-This script takes input from the `isolator.py` script and produces chemically viable substructures.
+Lightweight, no RDKit dependency. Works with luke.io_utils read/write tensors.
 """
+
+from __future__ import annotations
+
+from pathlib import Path
+import typing as tp
 
 import numpy as np
-from scipy.spatial import distance_matrix
+import torch
+
 from .io_utils import read_xyz, write_xyz
-import rdkit.Chem
-from rdkit.Chem import rdmolops
-import argparse
+
+ArrayLike = tp.Union[np.ndarray, torch.Tensor]
 
 
-def compute_connectivity(coordinates, threshold=1.8):
-    """Compute connectivity matrix based on distance threshold."""
-    dist_matrix = distance_matrix(coordinates, coordinates)
-    return (dist_matrix < threshold).astype(int)
+def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarray:
+    """Compute boolean connectivity by Euclidean distance.
+
+    coords: (..., N, 3) or (N, 3) array; operates on the last (N, 3).
+    Returns an (N, N) boolean adjacency with diagonal True.
+    """
+    if isinstance(coords, torch.Tensor):
+        c = coords.detach().cpu().numpy()
+    else:
+        c = np.asarray(coords)
+    if c.ndim == 3:
+        # assume (1, N, 3)
+        c = c[0]
+    # pairwise distances
+    diff = c[:, None, :] - c[None, :, :]
+    dist = np.linalg.norm(diff, axis=-1)
+    adj = dist <= float(threshold)
+    # ensure diagonal is True
+    np.fill_diagonal(adj, True)
+    return adj
 
 
-def find_largest_connected_component(connectivity):
-    """Find the largest connected component in the connectivity matrix."""
-    graph = rdmolops.GetAdjacencyMatrix(connectivity)
-    components = rdmolops.GetMolFrags(graph, asMols=False, sanitizeFrags=False)
-    largest_component = max(components, key=len)
-    return largest_component
+def largest_component_indices(adj: ArrayLike) -> tp.List[int]:
+    """Return indices of the largest connected component of adjacency matrix."""
+    A = np.asarray(adj).astype(bool)
+    N = A.shape[0]
+    visited = np.zeros(N, dtype=bool)
+    best: tp.List[int] = []
+    for start in range(N):
+        if visited[start]:
+            continue
+        # BFS
+        comp: tp.List[int] = []
+        q = [start]
+        visited[start] = True
+        while q:
+            u = q.pop(0)
+            comp.append(u)
+            neighbors = np.where(A[u])[0]
+            for v in neighbors:
+                if not visited[v]:
+                    visited[v] = True
+                    q.append(v)
+        if len(comp) > len(best):
+            best = comp
+    return sorted(best)
 
 
-def process_molecule(file_path):
-    """Process a molecule to ensure chemical viability."""
-    coordinates, elements = read_xyz(file_path)
-    connectivity = compute_connectivity(coordinates)
-    largest_component = find_largest_connected_component(connectivity)
-    # Filter coordinates and elements based on the largest component
-    filtered_coordinates = [coordinates[i] for i in largest_component]
-    filtered_elements = [elements[i] for i in largest_component]
-    return filtered_coordinates, filtered_elements
+def sanitize_species_coordinates(
+    species: torch.Tensor, coordinates: torch.Tensor, threshold: float = 1.8
+) -> tp.Tuple[torch.Tensor, torch.Tensor]:
+    """Keep only atoms in the largest connected component; returns tensors with batch dimension preserved (1, K)."""
+    # Expect (1, N) and (1, N, 3)
+    assert species.dim() == 2 and coordinates.dim(
+    ) == 3, "Expect batched tensors shapes (1, N) and (1, N, 3)"
+    z = species[0]
+    xyz = coordinates[0]
+    # drop padded atoms (-1) before connectivity
+    mask = z != -1
+    z2 = z[mask]
+    xyz2 = xyz[mask]
+    if z2.numel() == 0:
+        return species[:, :0], coordinates[:, :0]
+    adj = compute_connectivity(xyz2, threshold=threshold)
+    keep = largest_component_indices(adj)
+    z_out = z2[keep].unsqueeze(0)
+    xyz_out = xyz2[keep].unsqueeze(0)
+    return z_out, xyz_out
 
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Sanitize molecular structures.")
-    parser.add_argument("--input", required=True,
-                        help="Path to the input XYZ file.")
-    parser.add_argument("--output", required=True,
-                        help="Path to the output XYZ file.")
-    args = parser.parse_args()
-
-    print("Processing molecule...")
-    coordinates, elements = process_molecule(args.input)
-    write_xyz(args.output, coordinates, elements)
-    print("Sanitization complete. Output saved to", args.output)
-
-
-if __name__ == "__main__":
-    main()
+def sanitize_xyz_file(src: tp.Union[str, Path], dest: tp.Union[str, Path], threshold: float = 1.8) -> Path:
+    """Read XYZ, keep the largest connected component, and write to dest."""
+    src = Path(src)
+    dest = Path(dest)
+    species, coordinates, cell, pbc = read_xyz(str(src))[:4]
+    species_s, coords_s = sanitize_species_coordinates(
+        species, coordinates, threshold=threshold)
+    write_xyz(species_s, coords_s, dest, cell=cell)
+    return dest

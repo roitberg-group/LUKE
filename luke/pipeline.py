@@ -17,6 +17,7 @@ from rich.progress import track
 
 from .ani_forces import ANIForceCalculator
 from .isolator import Isolator
+from .structure_sanitizer import sanitize_xyz_file
 
 
 def ensure_dir(path: tp.Union[str, Path]) -> Path:
@@ -76,9 +77,14 @@ def run_pipeline(
 
         prefix = out_dir / f"frag_{input_path.stem}_{i}_"
         iso.process_molecule(bad_idxs, output_file_prefix=str(prefix))
+        # Optionally sanitize produced files
+        if sanitize:
+            for frag_file in sorted(out_dir.glob(f"{prefix.name}*.xyz")):
+                sanitized = frag_file.with_name(f"sanitized_{frag_file.name}")
+                sanitize_xyz_file(frag_file, sanitized)
 
     if sanitize:
-        print("[yellow]Sanitization step is not yet integrated; consider running luke sanitize on outputs.[/yellow]")
+        print("[green]Sanitization complete for generated fragments.[/green]")
 
     print(f"[green]LUKE pipeline finished. Results in: {out_dir}[/green]")
     return out_dir

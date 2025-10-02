@@ -1,18 +1,54 @@
-Overall pipeline:
-(Create a `run.py` or some similarly named script to run the protocol)
-input h5 or xyz -> ani_forces.py -> isolator.py -> structure_sanitizer + rdkit_fragment_identifier.py -> output files
-First and last stages should use functions in io.py
+# Roadmap: next steps
 
+1. CI and Quality Gates
 
-For isolator.py:
-* Incorporate `ani_forces.py` module, which is called to run ANI on an input XYZ or HDF5 file
+    - Add GitHub Actions workflow running: install (with submodules), ruff, mypy, pytest (CPU), and packaging sanity (build sdist/wheel).
+    - Cache pip and torch builds; matrix on Python 3.10–3.12.
+    - Upload coverage artifact and publish HTML on PRs (artifact only).
 
+2. Testing & Validation
 
-For structure_sanitizer.py:
-* Incorporate `isolator.py` which takes inputs from `ani_forces.py` to select high-error atoms
-* This script should take some 'nonsense' structures and clean them up to chemically viable species
+    - Unit tests for `io_utils` edge cases (padding, lattice present/absent, malformed lines).
+    - Mocked tests for `ANIForceCalculator` to avoid heavy model execution (patch torchani calls).
+    - Golden-file tests for fragment naming and output patterns.
+    - Integration test: small XYZ through CLI to results directory; smoke checks on files.
 
+3. Error Handling & Logging
 
-For io.py:
-* Organize functions in logical format, update the `read_xyz` function to reflect newest torchani version
-* Clean up the functions to hash xyz coords, write h5 and gaussian/slurm files
+    - Replace print with `rich` logging; add verbosity levels and `--quiet/--verbose` flags.
+    - Clear exceptions for: bad input path/format, empty frames, unsupported elements, CUDA unavailability.
+    - Consistent exit codes in CLI; structured error messages.
+
+4. Examples & Docs
+
+    - Add `examples/` with: quickstart notebook, CLI walkthrough, and programmatic API usage.
+    - Architecture docs: data flow diagram, component responsibilities, FAQs.
+    - Troubleshooting guide for common install/runtime issues (CPU vs CUDA, RDKit/OpenBabel).
+
+5. Performance
+
+    - Batch-friendly isolation (vectorize neighbor queries where possible).
+    - Optional CUDA acceleration for distance computations.
+    - Lazy model loading and reuse; optional half precision on CUDA.
+
+6. Packaging & Distribution
+
+    - Publish to PyPI (semver, changelog). Add `python -m build` and `twine check` steps to CI.
+    - Provide CPU-only and CUDA-ready `environment.yaml` variants.
+    - Optional extras for examples: `examples`, `docs` (sphinx/nbconvert).
+
+7. Data I/O Enhancements
+
+    - Add writer for parquet/JSON summaries of fragments and uncertainties.
+    - Optional HDF5 writer for fragments with metadata.
+    - Hash-based deduplication integrated in pipeline (reusing io_utils hashing).
+
+8. Extensibility Hooks
+
+    - Plugin-style registry for isolation strategies (distance cutoff, graph-based, chemistry-aware).
+    - Config file support (YAML) to drive pipeline parameters.
+
+9. Reproducibility
+
+    - Seed control across torch/numpy.
+    - Command provenance: write a run manifest with CLI args, versions, and environment info into results dir.
