@@ -4,6 +4,7 @@ __pycache__
 luke.egg-info
 .DS_Store
 */.DS_Store
+tests/test_outputs
 
 *.xyz
 *.h5

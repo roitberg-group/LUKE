@@ -2,7 +2,6 @@ import argparse
 from pathlib import Path
 import typing as tp
 
-import numpy as np
 import torch
 import torchani
 from torchani.datasets import ANIDataset

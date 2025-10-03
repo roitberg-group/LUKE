@@ -1,10 +1,8 @@
 import torch
-import torchani
 from torchani.tuples import SpeciesCoordinates
 from torchani.utils import PERIODIC_TABLE
 
 import ase
-from ase.io import read
 try:
     import openbabel  # type: ignore
     from openbabel import pybel  # type: ignore

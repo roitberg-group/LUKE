@@ -12,8 +12,8 @@ import typing as tp
 
 import torch
 import torchani
-from rich import print
 from rich.progress import track
+from .logging_utils import get_logger
 
 from .ani_forces import ANIForceCalculator
 from .isolator import Isolator
@@ -43,6 +43,7 @@ def run_pipeline(
 
     Returns the output directory path.
     """
+    logger = get_logger("luke.pipeline")
     input_path = Path(input_path)
     out_dir = ensure_dir(output_dir)
 
@@ -54,7 +55,8 @@ def run_pipeline(
     )
 
     if species_b.numel() == 0:
-        print("[yellow]No structures exceeded the weighted_stdev threshold. Nothing to isolate.[/yellow]")
+        logger.warning(
+            "No structures exceeded the weighted_stdev threshold. Nothing to isolate.")
         return out_dir
 
     # Isolate high-error atoms per structure
@@ -67,6 +69,7 @@ def run_pipeline(
         bad_idxs = torch.nonzero(
             bad_mask > 0, as_tuple=False).view(-1).tolist()
         if not bad_idxs:
+            logger.debug("Structure %d had no bad atoms above threshold.", i)
             continue
 
         iso = Isolator(model=model, threshold=threshold)
@@ -84,7 +87,6 @@ def run_pipeline(
                 sanitize_xyz_file(frag_file, sanitized)
 
     if sanitize:
-        print("[green]Sanitization complete for generated fragments.[/green]")
-
-    print(f"[green]LUKE pipeline finished. Results in: {out_dir}[/green]")
+        logger.info("Sanitization complete for generated fragments.")
+    logger.info("Pipeline finished. Results in: %s", out_dir)
     return out_dir
