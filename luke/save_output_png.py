@@ -7,8 +7,9 @@
 # - add argparser commands for inputs / outputs
 # - make it so that the script actually saves things, probably
 
-import pandas as pd
 import os
+
+import pandas as pd
 from ase import Atoms
 from ase.visualize.plot import plot_atoms
 from matplotlib import pyplot as plt

@@ -1,6 +1,4 @@
-import types
 import torch
-import pytest
 
 from luke import pipeline as luke_pipeline
 

@@ -1,10 +1,9 @@
 # This module contains functions for input/output operations, used in the first and last stages of LUKE
 
-import os
-from pathlib import Path
-import typing as tp
-import shlex
 import hashlib
+import os
+import shlex
+from pathlib import Path
 
 import torch
 from torch import Tensor
@@ -17,14 +16,14 @@ class IOErrorLUKE(Exception):
     pass
 
 def read_xyz(
-    path: tp.Union[str, Path],
-    dtype: tp.Optional[torch.dtype] = None,
-    device: tp.Union[torch.device, str, int, None] = None,
+    path: str | Path,
+    dtype: torch.dtype | None = None,
+    device: torch.device | str | int | None = None,
     detect_padding: bool = True,
     pad_species_value: int = 100,
     dividing_char: str = ">",
     return_comments: bool = False,
-) -> tp.Tuple[Tensor, Tensor, tp.Optional[Tensor], tp.Optional[Tensor]]:
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
     """
     Read an (extended) XYZ file and return atomic species, coordinates, and (optionally) cell data.
 
@@ -93,10 +92,10 @@ def read_xyz(
 
     """
     path = Path(path).resolve()
-    cell: tp.Optional[Tensor] = None
-    properties: tp.List[tp.Dict[str, Tensor]] = []
-    comments_list: tp.List[str] = []
-    with open(path, mode="rt", encoding="utf-8") as f:
+    cell: Tensor | None = None
+    properties: list[dict[str, Tensor]] = []
+    comments_list: list[str] = []
+    with open(path, encoding="utf-8") as f:
         lines = iter(f)
         conformation_num = 0
         while True:
@@ -132,10 +131,7 @@ def read_xyz(
             for _ in range(num):
                 line = next(lines)
                 s, x, y, z = line.split()
-                if s in ATOMIC_NUMBER:
-                    atomic_num = ATOMIC_NUMBER[s]
-                else:
-                    atomic_num = int(s)
+                atomic_num = ATOMIC_NUMBER[s] if s in ATOMIC_NUMBER else int(s)
                 if atomic_num == pad_species_value and detect_padding:
                     atomic_num = -1
                     x, y, z = "0.0", "0.0", "0.0"
@@ -166,8 +162,8 @@ def read_xyz(
 def write_xyz(
     species: Tensor,
     coordinates: Tensor,
-    dest: tp.Union[str, Path],
-    cell: tp.Optional[Tensor] = None,
+    dest: str | Path,
+    cell: Tensor | None = None,
     pad: bool = False,
     pad_coord_value: float = 0.0,
     pad_species_value: int = 100,
@@ -227,8 +223,8 @@ def write_xyz(
     if cell is not None and cell.shape != (3, 3):
         raise ValueError("Cell should be a tensor of shape (3, 3)")
 
-    with open(dest, mode="wt", encoding="utf-8") as f:
-        for j, (znums, coords) in enumerate(zip(species, coordinates)):
+    with open(dest, mode="w", encoding="utf-8") as f:
+        for _j, (znums, coords) in enumerate(zip(species, coordinates, strict=False)):
             if not pad:
                 mask = znums != -1
                 coords = coords[mask]
@@ -250,7 +246,7 @@ def write_xyz(
                 f.write(f'Lattice="{cell_elements}" Properties={props} pbc="T T T"\n')
             else:
                 f.write(f'Properties={props} pbc="F F F"\n')
-            for z, atom in zip(znums, coords):
+            for z, atom in zip(znums, coords, strict=False):
                 symbol = PERIODIC_TABLE[z]
                 f.write(f"{symbol} {atom[0]:.10f} {atom[1]:.10f} {atom[2]:.10f}\n")
 
@@ -259,7 +255,7 @@ def hash_xyz_coordinates(filepath):
     """Generate MD5 hash for the coordinates in an XYZ file."""
     hasher = hashlib.md5()
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath) as f:
             lines = f.readlines()[2:-1]  # Skip the first two and the last line -- fix depending on how xyz files are written
             for line in lines:
                 hasher.update(line.encode('utf-8'))
@@ -267,6 +263,7 @@ def hash_xyz_coordinates(filepath):
     except IOErrorLUKE as e:
         print(f"Error reading file {filepath}: {e}")
         return None
+
 
 def remove_duplicate_xyz_files(file_path):
     seen_hashes = set()
@@ -288,19 +285,21 @@ def remove_duplicate_xyz_files(file_path):
 
     print(f"Total duplicate files deleted: {duplicate_count}")
 
+
 def write_gaussian_input(symbols, coordinates, file_name, theory='B3LYP', basis_set='6-31G(d)'):
     # TO DO:
-        # Input should be species, convert to symbols
-        # ???
+    # Input should be species, convert to symbols
+    # ???
     header = f"%chk={file_name}.chk\n# {theory}/{basis_set} SP\n\nTitle Card Required\n\n0 1\n"
-    molecule_data = "\n".join([f"{symbol} {' '.join(map(str, coord))}" for symbol, coord in zip(symbols, coordinates)])
+    molecule_data = "\n".join([f"{symbol} {' '.join(map(str, coord))}" for symbol, coord in zip(symbols, coordinates, strict=False)])
     footer = "\n\n"
 
     with open(f"{file_name}.com", "w") as f:
         f.write(header + molecule_data + footer)
 
-# Example usage
-# create_gaussian_com_file(['H', 'O', 'H'], [[0, 0, 0], [0, 0, 1], [0, 1, 0]], "water_molecule")
+    # Example usage
+    # create_gaussian_com_file(['H', 'O', 'H'], [[0, 0, 0], [0, 0, 1], [0, 1, 0]], "water_molecule")
+
 
 def write_slurm(com_file, script_name):
     script_content = f"""

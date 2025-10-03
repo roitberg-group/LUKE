@@ -1,14 +1,14 @@
 import argparse
 from pathlib import Path
-import typing as tp
 
+import pandas as pd
 import torch
 import torchani
 from torchani.datasets import ANIDataset
 from torchani.units import hartree2kcalpermol
 from tqdm import tqdm
+
 from luke.io_utils import read_xyz
-import pandas as pd
 
 # Fix the threshold -- 0.5 was determined from kcal/mol*A data
 
@@ -16,7 +16,7 @@ import pandas as pd
 class ANIForceCalculator:
     """Compute ANI forces and uncertainty metrics for molecular structures."""
 
-    def __init__(self, model_name: str = "ANI2xr", device: tp.Optional[str] = None, threshold: float = 0.5):
+    def __init__(self, model_name: str = "ANI2xr", device: str | None = None, threshold: float = 0.5):
         """Initialize ANI model and device."""
         if device is None or (device == "cuda" and not torch.cuda.is_available()):
             device = "cpu"  # Force CPU if CUDA is unavailable
@@ -30,7 +30,7 @@ class ANIForceCalculator:
 
     def process_structure(
         self, species: torch.Tensor, coordinates: torch.Tensor
-    ) -> tp.Optional[tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, float, float]]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, float, float] | None:
         """
         Compute ANI energies, force uncertainty, and flag outlier atoms for a single structure.
         Returns None if weighted_stdev ≤ 3.5.
@@ -63,15 +63,15 @@ class ANIForceCalculator:
 
     def process_dataset(
         self, dataset_path: str, batch_size: int = 2500, include_energy: bool = True
-    ) -> tp.Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Process an H5 or XYZ dataset and batch valid structures/results."""
         dataset_path = Path(dataset_path)
-        species_list: tp.List[torch.Tensor] = []
-        coordinates_list: tp.List[torch.Tensor] = []
-        good_or_bad_list: tp.List[torch.Tensor] = []
-        energy_list: tp.List[float] = []
-        qbc_list: tp.List[float] = []
-        weighted_stdev_list: tp.List[float] = []
+        species_list: list[torch.Tensor] = []
+        coordinates_list: list[torch.Tensor] = []
+        good_or_bad_list: list[torch.Tensor] = []
+        energy_list: list[float] = []
+        qbc_list: list[float] = []
+        weighted_stdev_list: list[float] = []
 
         if dataset_path.suffix == ".h5":
             ds = ANIDataset(str(dataset_path))

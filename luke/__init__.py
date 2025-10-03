@@ -1,4 +1,4 @@
-from .io_utils import read_xyz, write_xyz, hash_xyz_coordinates, write_gaussian_input, write_slurm
+from .io_utils import hash_xyz_coordinates, read_xyz, write_gaussian_input, write_slurm, write_xyz
 from .isolator import Isolator
 from .pipeline import run_pipeline
 

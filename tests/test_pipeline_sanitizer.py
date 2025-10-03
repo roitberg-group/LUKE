@@ -2,8 +2,12 @@ from pathlib import Path
 
 import torch
 
-from luke.structure_sanitizer import compute_connectivity, largest_component_indices, sanitize_species_coordinates
 from luke.pipeline import run_pipeline
+from luke.structure_sanitizer import (
+    compute_connectivity,
+    largest_component_indices,
+    sanitize_species_coordinates,
+)
 
 
 def test_compute_connectivity_and_lcc():

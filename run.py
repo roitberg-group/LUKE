@@ -12,10 +12,11 @@ Arguments:
 """
 
 import argparse
+
 from luke.ani_forces import run_ani_forces
+from luke.io_utils import read_input, write_output
 from luke.isolator import isolate_high_error_atoms
 from luke.structure_sanitizer import sanitize_structures
-from luke.io_utils import read_input, write_output
 
 
 def main():

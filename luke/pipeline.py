@@ -8,29 +8,28 @@ and optional sanitization into a cohesive workflow.
 from __future__ import annotations
 
 from pathlib import Path
-import typing as tp
 
 import torch
 import torchani
 from rich.progress import track
-from .logging_utils import get_logger
 
 from .ani_forces import ANIForceCalculator
 from .isolator import Isolator
+from .logging_utils import get_logger
 from .structure_sanitizer import sanitize_xyz_file
 
 
-def ensure_dir(path: tp.Union[str, Path]) -> Path:
+def ensure_dir(path: str | Path) -> Path:
     p = Path(path)
     p.mkdir(parents=True, exist_ok=True)
     return p
 
 
 def run_pipeline(
-    input_path: tp.Union[str, Path],
-    output_dir: tp.Union[str, Path] = "results",
+    input_path: str | Path,
+    output_dir: str | Path = "results",
     model_name: str = "ANI2xr",
-    device: tp.Optional[str] = None,
+    device: str | None = None,
     threshold: float = 0.5,
     batch_size: int = 1000,
     sanitize: bool = False,

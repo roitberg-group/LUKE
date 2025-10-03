@@ -6,14 +6,13 @@ Lightweight, no RDKit dependency. Works with luke.io_utils read/write tensors.
 from __future__ import annotations
 
 from pathlib import Path
-import typing as tp
 
 import numpy as np
 import torch
 
 from .io_utils import read_xyz, write_xyz
 
-ArrayLike = tp.Union[np.ndarray, torch.Tensor]
+ArrayLike = np.ndarray | torch.Tensor
 
 
 def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarray:
@@ -22,10 +21,7 @@ def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarra
     coords: (..., N, 3) or (N, 3) array; operates on the last (N, 3).
     Returns an (N, N) boolean adjacency with diagonal True.
     """
-    if isinstance(coords, torch.Tensor):
-        c = coords.detach().cpu().numpy()
-    else:
-        c = np.asarray(coords)
+    c = coords.detach().cpu().numpy() if isinstance(coords, torch.Tensor) else np.asarray(coords)
     if c.ndim == 3:
         # assume (1, N, 3)
         c = c[0]
@@ -38,17 +34,17 @@ def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarra
     return adj
 
 
-def largest_component_indices(adj: ArrayLike) -> tp.List[int]:
+def largest_component_indices(adj: ArrayLike) -> list[int]:
     """Return indices of the largest connected component of adjacency matrix."""
     A = np.asarray(adj).astype(bool)
     N = A.shape[0]
     visited = np.zeros(N, dtype=bool)
-    best: tp.List[int] = []
+    best: list[int] = []
     for start in range(N):
         if visited[start]:
             continue
         # BFS
-        comp: tp.List[int] = []
+        comp: list[int] = []
         q = [start]
         visited[start] = True
         while q:
@@ -66,7 +62,7 @@ def largest_component_indices(adj: ArrayLike) -> tp.List[int]:
 
 def sanitize_species_coordinates(
     species: torch.Tensor, coordinates: torch.Tensor, threshold: float = 1.8
-) -> tp.Tuple[torch.Tensor, torch.Tensor]:
+) -> tuple[torch.Tensor, torch.Tensor]:
     """Keep only atoms in the largest connected component; returns tensors with batch dimension preserved (1, K)."""
     # Expect (1, N) and (1, N, 3)
     assert species.dim() == 2 and coordinates.dim(
@@ -86,7 +82,7 @@ def sanitize_species_coordinates(
     return z_out, xyz_out
 
 
-def sanitize_xyz_file(src: tp.Union[str, Path], dest: tp.Union[str, Path], threshold: float = 1.8) -> Path:
+def sanitize_xyz_file(src: str | Path, dest: str | Path, threshold: float = 1.8) -> Path:
     """Read XYZ, keep the largest connected component, and write to dest."""
     src = Path(src)
     dest = Path(dest)

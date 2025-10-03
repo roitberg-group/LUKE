@@ -1,8 +1,8 @@
+import ase
 import torch
 from torchani.tuples import SpeciesCoordinates
 from torchani.utils import PERIODIC_TABLE
 
-import ase
 try:
     import openbabel  # type: ignore
     from openbabel import pybel  # type: ignore
@@ -15,10 +15,10 @@ try:
 except Exception:  # pragma: no cover
     Chem = None  # type: ignore
 
-import numpy as np
-import typing as tp
 import tempfile
 from collections import Counter
+
+import numpy as np
 
 from .ani_forces import ANIForceCalculator
 
@@ -36,7 +36,7 @@ class Isolator:
         self.numpy_species = None
         self.numpy_coordinates = None
 
-        self.molecule: tp.Optional[object] = None
+        self.molecule: object | None = None
         self.model = model
 
     @classmethod
@@ -82,7 +82,7 @@ class Isolator:
     def create_rdkit_mol(
         self,
         return_smiles: bool = True,
-    ) -> tp.Optional[object]:
+    ) -> object | None:
         """
         This function does the following:
         * Writes a temp file to read/store xyz information

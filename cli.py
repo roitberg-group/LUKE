@@ -6,8 +6,8 @@ Provides subcommands for running the full pipeline and individual steps.
 from __future__ import annotations
 
 from pathlib import Path
+
 import typer
-from typing import Optional
 
 from luke.pipeline import run_pipeline
 
@@ -21,7 +21,7 @@ def pipeline(
     output: Path = typer.Option(
         Path("results"), "--output", "-o", help="Output directory"),
     model: str = typer.Option("ANI2xr", "--model", help="ANI model name"),
-    device: Optional[str] = typer.Option(None, "--device", help="cpu or cuda"),
+    device: str | None = typer.Option(None, "--device", help="cpu or cuda"),
     threshold: float = typer.Option(
         0.5, "--threshold", help="Bad-atom threshold"),
     batch_size: int = typer.Option(
