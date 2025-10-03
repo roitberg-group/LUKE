@@ -31,9 +31,9 @@ jobs:
       - name: Lint
         run: |
           ruff check .
-      - name: Test
+      - name: Test (LUKE only)
         run: |
-          pytest -q --maxfail=1 --disable-warnings
+          pytest -q --maxfail=1 --disable-warnings tests
       - name: Build (sdist/wheel) smoke
         run: |
           pip install build

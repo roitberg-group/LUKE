@@ -21,7 +21,8 @@ def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarra
     coords: (..., N, 3) or (N, 3) array; operates on the last (N, 3).
     Returns an (N, N) boolean adjacency with diagonal True.
     """
-    c = coords.detach().cpu().numpy() if isinstance(coords, torch.Tensor) else np.asarray(coords)
+    c = coords.detach().cpu().numpy() if isinstance(
+        coords, torch.Tensor) else np.asarray(coords)
     if c.ndim == 3:
         # assume (1, N, 3)
         c = c[0]

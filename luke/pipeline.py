@@ -64,9 +64,13 @@ def run_pipeline(
     for i in track(range(species_b.shape[0]), description="Isolating high-error atoms"):
         species = species_b[i].unsqueeze(0)  # (1, N)
         coords = coords_b[i].unsqueeze(0)    # (1, N, 3)
-        bad_mask = bad_b[i]                  # (N,)
-        bad_idxs = torch.nonzero(
-            bad_mask > 0, as_tuple=False).view(-1).tolist()
+        bad_mask = bad_b[i]
+        # Normalize possible shapes (e.g., (N,), (N,1), (N,3)) by reducing over last dim if needed
+        if bad_mask.dim() > 1:
+            atom_mask = (bad_mask > 0).any(dim=-1)
+        else:
+            atom_mask = bad_mask > 0
+        bad_idxs = atom_mask.nonzero(as_tuple=False).reshape(-1).tolist()
         if not bad_idxs:
             logger.debug("Structure %d had no bad atoms above threshold.", i)
             continue

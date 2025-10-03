@@ -7,7 +7,8 @@ class DummyCalc:
     """Lightweight stand-in for ANIForceCalculator."""
 
     def __init__(self, *_, **__):
-        pass
+        import torch
+        self.device = torch.device("cpu")
 
     def process_dataset(self, dataset_path: str, batch_size: int = 2500):  # noqa: ARG002
         # Return a single "structure" with one bad atom

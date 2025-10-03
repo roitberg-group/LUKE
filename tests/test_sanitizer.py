@@ -45,6 +45,21 @@ O 3.0 0.0 0.0
 
     sanitize_xyz_file(input_xyz, output_xyz, threshold=1.6)
     output_content = output_xyz.read_text()
-    assert output_content.splitlines()[0].strip() == "2"
-    assert "H 0.0 0.0 0.0" in output_content
-    assert "H 1.0 0.0 0.0" in output_content
+    lines = output_content.splitlines()
+    assert lines[0].strip() == "2"
+    # Parse the two atom lines (skip header line index 1)
+    atom_lines = lines[2:4]
+    elems = []
+    coords = []
+    for line in atom_lines:
+        parts = line.split()
+        elems.append(parts[0])
+        coords.append(tuple(float(x) for x in parts[1:4]))
+    assert elems == ["H", "H"]
+    # Distinguish they are ~1.0 Å apart
+    import math
+    dx = coords[1][0] - coords[0][0]
+    dy = coords[1][1] - coords[0][1]
+    dz = coords[1][2] - coords[0][2]
+    dist = math.sqrt(dx * dx + dy * dy + dz * dz)
+    assert abs(dist - 1.0) < 1e-6

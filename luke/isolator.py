@@ -1,4 +1,5 @@
 import ase
+import ase.io  # ensure io submodule loaded so ase.io.write is available
 import torch
 from torchani.tuples import SpeciesCoordinates
 from torchani.utils import PERIODIC_TABLE
@@ -78,6 +79,11 @@ class Isolator:
             if isinstance(self.coordinates, torch.Tensor):
                 self.numpy_coordinates = self.coordinates[conformer_idx].detach(
                 ).cpu().numpy()
+        # Flatten leading batch dimension if present (shape (1, N) -> (N,), (1, N, 3) -> (N, 3))
+        if self.numpy_species is not None and self.numpy_species.ndim == 2 and self.numpy_species.shape[0] == 1:
+            self.numpy_species = self.numpy_species[0]
+        if self.numpy_coordinates is not None and self.numpy_coordinates.ndim == 3 and self.numpy_coordinates.shape[0] == 1:
+            self.numpy_coordinates = self.numpy_coordinates[0]
 
     def create_rdkit_mol(
         self,
@@ -138,10 +144,12 @@ class Isolator:
         dists = torch.cdist(coords.double(), coords.double())  # (N, N)
         neighbors_dict = {}
         for atom_index in bad_atom_idxs:
+            if atom_index < 0 or atom_index >= dists.shape[0]:  # safety
+                continue
             # neighbors within cutoff excluding self
             mask = (dists[atom_index] <= self.cutoff) & (
                 torch.arange(dists.shape[0]) != atom_index)
-            idxs = torch.nonzero(mask, as_tuple=False).view(-1).tolist()
+            idxs = torch.nonzero(mask, as_tuple=False).reshape(-1).tolist()
             neighbors_dict[atom_index] = idxs
         return neighbors_dict
 
@@ -172,8 +180,12 @@ class Isolator:
         """
         if not bad_atoms:
             return
-        self.structure = ase.Atoms(
-            numbers=self.numpy_species, positions=self.numpy_coordinates)
+        # Ensure 1D numbers and (N,3) positions for ASE
+        numbers = np.asarray(self.numpy_species).ravel()
+        positions = np.asarray(self.numpy_coordinates)
+        if positions.ndim == 3 and positions.shape[0] == 1:
+            positions = positions[0]
+        self.structure = ase.Atoms(numbers=numbers, positions=positions)
         self.symbols = np.asarray(
             self.structure.get_chemical_symbols()).astype(str)
 

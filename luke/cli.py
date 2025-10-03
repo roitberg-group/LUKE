@@ -56,15 +56,22 @@ def _pipeline_impl(
 
 @app.command("pipeline")
 def pipeline_command(
-    input: Path = typer.Argument(..., exists=True, help="Input HDF5 or XYZ file"),
-    output: Path = typer.Option(Path("results"), "--output", "-o", help="Output directory"),
+    input: Path = typer.Argument(..., exists=True,
+                                 help="Input HDF5 or XYZ file"),
+    output: Path = typer.Option(
+        Path("results"), "--output", "-o", help="Output directory"),
     model: str = typer.Option("ANI2xr", "--model", help="ANI model name"),
     device: str | None = typer.Option(None, "--device", help="cpu or cuda"),
-    threshold: float = typer.Option(0.5, "--threshold", help="Bad-atom threshold"),
-    batch_size: int = typer.Option(1000, "--batch-size", help="Batch size for dataset processing"),
-    sanitize: bool = typer.Option(False, "--sanitize", help="Attempt to sanitize fragments"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="Enable verbose logging"),
-    quiet: bool = typer.Option(False, "--quiet", "-q", help="Silence non-error logs"),
+    threshold: float = typer.Option(
+        0.5, "--threshold", help="Bad-atom threshold"),
+    batch_size: int = typer.Option(
+        1000, "--batch-size", help="Batch size for dataset processing"),
+    sanitize: bool = typer.Option(
+        False, "--sanitize", help="Attempt to sanitize fragments"),
+    verbose: bool = typer.Option(
+        False, "--verbose", "-v", help="Enable verbose logging"),
+    quiet: bool = typer.Option(
+        False, "--quiet", "-q", help="Silence non-error logs"),
 ) -> None:  # noqa: D401
     """Run the LUKE end-to-end workflow."""
     # Delegate to internal implementation to avoid B008 on defaults.
@@ -79,6 +86,7 @@ def pipeline_command(
         verbose,
         quiet,
     )
+
 
 def main():
     app()

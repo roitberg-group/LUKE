@@ -10,10 +10,13 @@ from torch import Tensor
 from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE
 from torchani.utils import pad_atomic_properties
 
-__all__ = ["read_xyz", "write_xyz", "hash_xyz_coordinates", "write_gaussian_input", "write_slurm"]
+__all__ = ["read_xyz", "write_xyz", "hash_xyz_coordinates",
+           "write_gaussian_input", "write_slurm"]
+
 
 class IOErrorLUKE(Exception):
     pass
+
 
 def read_xyz(
     path: str | Path,
@@ -113,7 +116,8 @@ def read_xyz(
                 comments_list.append(comment)
             if "lattice" in comment.lower():
                 if (cell is None) and (conformation_num != 0):
-                    raise IOErrorLUKE("If cell is present it should be in the first conformation")
+                    raise IOErrorLUKE(
+                        "If cell is present it should be in the first conformation")
                 parts = shlex.split(comment)
                 for part in parts:
                     key, value = part.split("=")
@@ -127,7 +131,8 @@ def read_xyz(
                         if cell is None:
                             cell = conformation_cell
                         elif not (cell == conformation_cell).all():
-                            raise IOErrorLUKE("Found two conformations with non-matching cells")
+                            raise IOErrorLUKE(
+                                "Found two conformations with non-matching cells")
             for _ in range(num):
                 line = next(lines)
                 s, x, y, z = line.split()
@@ -153,7 +158,8 @@ def read_xyz(
                 }
             )
     pad_properties = pad_atomic_properties(properties)
-    pbc = torch.tensor([True, True, True], device=device) if cell is not None else None
+    pbc = torch.tensor([True, True, True],
+                       device=device) if cell is not None else None
     if return_comments:
         return pad_properties["species"], pad_properties["coordinates"], cell, pbc, comments_list  # type: ignore  # noqa: E501
     return pad_properties["species"], pad_properties["coordinates"], cell, pbc
@@ -241,14 +247,17 @@ def write_xyz(
             props = "species:S:1:pos:R:3"
             if cell is not None:
                 cell_elements = " ".join(
-                    [(f"{e:.10f}" if e != 0.0 else "0.0") for e in cell.view(-1)]
+                    [(f"{e:.10f}" if e != 0.0 else "0.0")
+                     for e in cell.view(-1)]
                 )
-                f.write(f'Lattice="{cell_elements}" Properties={props} pbc="T T T"\n')
+                f.write(
+                    f'Lattice="{cell_elements}" Properties={props} pbc="T T T"\n')
             else:
                 f.write(f'Properties={props} pbc="F F F"\n')
             for z, atom in zip(znums, coords, strict=False):
                 symbol = PERIODIC_TABLE[z]
-                f.write(f"{symbol} {atom[0]:.10f} {atom[1]:.10f} {atom[2]:.10f}\n")
+                f.write(
+                    f"{symbol} {atom[0]:.10f} {atom[1]:.10f} {atom[2]:.10f}\n")
 
 
 def hash_xyz_coordinates(filepath):
@@ -256,7 +265,8 @@ def hash_xyz_coordinates(filepath):
     hasher = hashlib.md5()
     try:
         with open(filepath) as f:
-            lines = f.readlines()[2:-1]  # Skip the first two and the last line -- fix depending on how xyz files are written
+            # Skip the first two and the last line -- fix depending on how xyz files are written
+            lines = f.readlines()[2:-1]
             for line in lines:
                 hasher.update(line.encode('utf-8'))
         return hasher.hexdigest()
@@ -291,7 +301,8 @@ def write_gaussian_input(symbols, coordinates, file_name, theory='B3LYP', basis_
     # Input should be species, convert to symbols
     # ???
     header = f"%chk={file_name}.chk\n# {theory}/{basis_set} SP\n\nTitle Card Required\n\n0 1\n"
-    molecule_data = "\n".join([f"{symbol} {' '.join(map(str, coord))}" for symbol, coord in zip(symbols, coordinates, strict=False)])
+    molecule_data = "\n".join([f"{symbol} {' '.join(map(str, coord))}" for symbol, coord in zip(
+        symbols, coordinates, strict=False)])
     footer = "\n\n"
 
     with open(f"{file_name}.com", "w") as f:
@@ -323,5 +334,6 @@ def write_slurm(com_file, script_name):
 
 if __name__ == "__main__":
     # Fix this with the addition of an argparser
-    directory = input("Enter the directory path containing XYZ files: ").strip()
+    directory = input(
+        "Enter the directory path containing XYZ files: ").strip()
     remove_duplicate_xyz_files(directory)
