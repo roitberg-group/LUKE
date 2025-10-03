@@ -5,7 +5,15 @@ build-backend = "setuptools.build_meta"
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-exclude = ["external", "luke.egg-info"]
+# Use extend-exclude so we inherit Ruff's default ignore list (.venv, build, dist, etc.)
+extend-exclude = [
+	"external",
+	"luke.egg-info",
+	".venv",
+	"venv",
+	"build",
+	"dist",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]

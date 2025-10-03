@@ -68,7 +68,7 @@ jobs:
       - name: Lint
         run: |
           . .venv/bin/activate
-          ruff check .
+          ruff check luke tests
       - name: Test (LUKE only)
         run: |
           . .venv/bin/activate
