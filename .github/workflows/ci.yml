@@ -9,6 +9,9 @@ on:
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    env:
+      # Set FAIL_FAST to 1 to restore immediate failure behavior easily.
+      FAIL_FAST: 0
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,20 +67,63 @@ jobs:
           python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__)"
           pip list | grep -E 'torch|torchani|ruff' || true
       - name: Lint
+        id: lint
+        continue-on-error: true
         run: |
           . .venv/bin/activate
+          set +e
           ruff check luke tests
+          rc=$?
+          if [ $rc -ne 0 ]; then echo "LINT_FAILED=1" >> $GITHUB_ENV; fi
+          if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
       - name: Test (LUKE only)
+        id: tests
+        continue-on-error: true
         run: |
           . .venv/bin/activate
-          pytest -q --maxfail=1 --disable-warnings tests
+          set +e
+          pytest -q --disable-warnings tests
+          rc=$?
+          if [ $rc -ne 0 ]; then echo "TEST_FAILED=1" >> $GITHUB_ENV; fi
+          if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
       - name: Build (sdist/wheel) smoke
+        id: build
+        continue-on-error: true
         run: |
           . .venv/bin/activate
+          set +e
           pip install build
           python -m build --sdist --wheel --outdir dist
+          rc=$?
+          if [ $rc -ne 0 ]; then echo "BUILD_FAILED=1" >> $GITHUB_ENV; fi
+          if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
       - name: Twine check
+        id: twine
+        continue-on-error: true
         run: |
           . .venv/bin/activate
+          set +e
           pip install twine
           twine check dist/*
+          rc=$?
+          if [ $rc -ne 0 ]; then echo "TWINE_FAILED=1" >> $GITHUB_ENV; fi
+          if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
+      - name: Aggregate & fail if any step failed
+        if: always()
+        run: |
+          fails=0
+          summary="## CI Summary\n"
+          for flag in LINT_FAILED TEST_FAILED BUILD_FAILED TWINE_FAILED; do
+            val=$(printenv $flag || echo 0)
+            if [ "$val" = "1" ]; then
+              summary+="- ❌ ${flag}\n"
+              fails=1
+            else
+              summary+="- ✅ ${flag}\n"
+            fi
+          done
+          echo "$summary" >> $GITHUB_STEP_SUMMARY
+          if [ $fails -ne 0 ]; then
+            echo "One or more steps failed." >&2
+            exit 1
+          fi
