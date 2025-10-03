@@ -7,6 +7,7 @@ from pathlib import Path
 
 import torch
 from torch import Tensor
+
 try:  # Graceful fallback if torchani not installed (e.g., minimal CI paths)
     from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE  # type: ignore
     from torchani.utils import pad_atomic_properties  # type: ignore
