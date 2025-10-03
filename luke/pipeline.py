@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import torch
 import torchani
 from rich.progress import track
 
@@ -65,11 +64,8 @@ def run_pipeline(
         species = species_b[i].unsqueeze(0)  # (1, N)
         coords = coords_b[i].unsqueeze(0)    # (1, N, 3)
         bad_mask = bad_b[i]
-        # Normalize possible shapes (e.g., (N,), (N,1), (N,3)) by reducing over last dim if needed
-        if bad_mask.dim() > 1:
-            atom_mask = (bad_mask > 0).any(dim=-1)
-        else:
-            atom_mask = bad_mask > 0
+        # Normalize possible shapes (e.g., (N,), (N,1), (N,3)) by reducing over last dim if needed (SIM108)
+        atom_mask = (bad_mask > 0).any(dim=-1) if bad_mask.dim() > 1 else (bad_mask > 0)
         bad_idxs = atom_mask.nonzero(as_tuple=False).reshape(-1).tolist()
         if not bad_idxs:
             logger.debug("Structure %d had no bad atoms above threshold.", i)
