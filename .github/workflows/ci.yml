@@ -16,6 +16,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            setup.py
+            pyproject.toml
+      - name: Show cache key context
+        run: |
+          echo "Using pip cache based on requirements.txt, setup.py, pyproject.toml"
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -26,3 +34,11 @@ jobs:
       - name: Test
         run: |
           pytest -q --maxfail=1 --disable-warnings
+      - name: Build (sdist/wheel) smoke
+        run: |
+          pip install build
+          python -m build --sdist --wheel --outdir dist
+      - name: Twine check
+        run: |
+          pip install twine
+          twine check dist/*
