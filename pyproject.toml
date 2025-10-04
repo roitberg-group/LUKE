@@ -2,6 +2,45 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "luke"
+version = "0.2.0"
+description = "LUKE: Molecular fragmentation for active learning in ANI"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [ { name = "Nick Terrel", email = "nickterrel4@gmail.com" } ]
+classifiers = [
+	"Programming Language :: Python :: 3",
+	"License :: OSI Approved :: MIT License",
+	"Operating System :: OS Independent",
+]
+dependencies = [
+	"torch>=2.3.1",  # CPU wheel pinned separately in CI
+	"numpy>=1.24",
+	"pandas>=2.0",
+	"tqdm>=4.65",
+	"rich>=13",
+	"typer>=0.12",
+	"ase>=3.22",
+	"scipy>=1.10",
+]
+
+[project.optional-dependencies]
+chem = [
+	"rdkit-pypi>=2022.9.5",
+	"openbabel-wheel>=3.1.1.post1",
+]
+dev = [
+	"pytest>=8",
+	"pytest-cov>=5",
+	"ruff>=0.5",
+	"mypy>=1.8",
+]
+
+[project.scripts]
+luke = "luke.__main__:main"
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"  # Align with CI Python version
@@ -24,7 +63,7 @@ combine-as-imports = true
 known-first-party = ["luke"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

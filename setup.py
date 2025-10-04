@@ -3,7 +3,9 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
+
 # Ensure the torchani submodule is initialized and updated
+
 
 def ensure_torchani_submodule():
     try:
@@ -33,17 +35,8 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/roitberg-group/LUKE",
     packages=find_packages(),  # Automatically find packages
-    install_requires=[
-        "torch>=2.1",
-        "torchani>=2.2",
-        "numpy>=1.24",
-        "pandas>=2.0",
-        "tqdm>=4.65",
-        "rich>=13",
-        "typer>=0.12",
-        "ase>=3.22",
-        "scipy>=1.10",
-    ],
+    # Runtime dependencies now declared in pyproject.toml (PEP 621).
+    install_requires=[],
     extras_require={
         "chem": [
             "rdkit-pypi>=2022.9.5",

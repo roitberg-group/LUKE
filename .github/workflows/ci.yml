@@ -12,6 +12,9 @@ jobs:
     env:
       # Set FAIL_FAST to 1 to restore immediate failure behavior easily.
       FAIL_FAST: 0
+      PIP_DISABLE_PIP_VERSION_CHECK: 1
+      PYTORCH_INDEX_URL: https://download.pytorch.org/whl/cpu
+      TORCH_VERSION: 2.3.1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -22,7 +25,6 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: |
-            requirements.txt
             setup.py
             pyproject.toml
             external/torchani/setup.py
@@ -32,7 +34,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
           restore-keys: |
             venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
       - name: Cache torch & pip wheels (extras)
@@ -42,7 +44,7 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.cache/torch
-          key: piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
+          key: piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
           restore-keys: |
             piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
       - name: Show cache key context
@@ -50,7 +52,7 @@ jobs:
           echo "Using pip cache based on requirements.txt, setup.py, pyproject.toml"
           echo "Venv cache hit: ${{ steps.cache-venv.outputs.cache-hit }}"
           echo "Torch/pip cache hit: ${{ steps.cache-torch.outputs.cache-hit }}"
-      - name: Install dependencies
+      - name: Install dependencies (CPU torch first)
         run: |
           python -m pip install --upgrade pip
           # Create venv if not present (cache may have restored it already)
@@ -60,12 +62,16 @@ jobs:
           echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
           . .venv/bin/activate
           pip install --upgrade pip wheel
-          # Install TorchANI from vendored source first
-          pip install -e external/torchani
-          # Install project with dev & chem extras
-          pip install -e .[dev,chem]
-          # Show key dependency versions (concise)
-          python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__)"
+          # Install pinned CPU-only torch first to avoid downloading huge CUDA wheels
+          pip install --index-url $PYTORCH_INDEX_URL torch==${TORCH_VERSION}+cpu
+          # Install TorchANI from vendored source (editable)
+          pip install -e external/torchani --no-deps
+          # Install project extras (dev, chem) without re-solving already installed core deps
+          pip install -e .[chem,dev] --no-deps
+          # Ensure main runtime deps present (in case they weren't in extras separation)
+          # Ensure core deps (already in pyproject) are present (harmless if already satisfied)
+          pip install numpy pandas tqdm rich typer ase scipy
+          python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__, 'cpu-only')"
       - name: Verify environment
         run: |
           . .venv/bin/activate
