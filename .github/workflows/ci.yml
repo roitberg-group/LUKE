@@ -70,11 +70,8 @@ jobs:
           # We let pip resolve deps here so that required packages like huggingface_hub, pyarrow, zarr, h5py are present.
           # torch is already satisfied so it will not fetch a different (CUDA) wheel.
           pip install -e external/torchani
-          # Install project extras (dev, chem) without re-solving already installed core deps
-          pip install -e .[chem,dev] --no-deps
-          # Ensure main runtime deps present (in case they weren't in extras separation)
-          # Ensure core deps (already in pyproject) are present (harmless if already satisfied)
-          pip install numpy pandas tqdm rich typer ase scipy
+          # Install project with chemistry + dev extras (will include build & twine now)
+          pip install -e .[chem,dev]
           python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__, 'cpu-only')"
       - name: Verify environment
         run: |
@@ -123,7 +120,6 @@ jobs:
         run: |
           . .venv/bin/activate
           set +e
-          pip install build
           python -m build --sdist --wheel --outdir dist
           rc=$?
           if [ $rc -ne 0 ]; then echo "BUILD_FAILED=1" >> $GITHUB_ENV; fi
@@ -134,7 +130,6 @@ jobs:
         run: |
           . .venv/bin/activate
           set +e
-          pip install twine
           twine check dist/*
           rc=$?
           if [ $rc -ne 0 ]; then echo "TWINE_FAILED=1" >> $GITHUB_ENV; fi

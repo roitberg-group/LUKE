@@ -3,7 +3,6 @@ from pathlib import Path
 
 from setuptools import find_packages, setup
 
-
 # Ensure the torchani submodule is initialized and updated
 
 
@@ -55,9 +54,10 @@ setup(
         ]
     },
     python_requires=">=3.10",
+    # Keep minimal classifiers; license expression now lives in pyproject.toml to avoid
+    # setuptools PEP 639 deprecation errors about license classifiers.
     classifiers=[
         "Programming Language :: Python :: 3",
-        "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
 )

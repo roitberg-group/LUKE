@@ -8,15 +8,15 @@ version = "0.2.0"
 description = "LUKE: Molecular fragmentation for active learning in ANI"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+# SPDX expression style license string (avoids setuptools deprecation warnings)
+license = "MIT"
 authors = [ { name = "Nick Terrel", email = "nickterrel4@gmail.com" } ]
 classifiers = [
 	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: MIT License",
 	"Operating System :: OS Independent",
 ]
 dependencies = [
-	"torch>=2.3.1",  # CPU wheel pinned separately in CI
+	"torch==2.3.1",  # Pin to match CI to avoid divergence / accidental CUDA pulls locally
 	"numpy>=1.24",
 	"pandas>=2.0",
 	"tqdm>=4.65",
@@ -36,6 +36,8 @@ dev = [
 	"pytest-cov>=5",
 	"ruff>=0.5",
 	"mypy>=1.8",
+	"build>=1.0",
+	"twine>=6",
 ]
 
 [project.scripts]
