@@ -25,7 +25,7 @@ def ensure_torchani_submodule():
 ensure_torchani_submodule()
 
 setup(
-    name="luke",  # Package name
+    name="luke",
     version="0.2.0",
     author="Nick Terrel",
     author_email="nickterrel4@gmail.com",
@@ -33,29 +33,15 @@ setup(
     long_description=Path(__file__).parent.joinpath("README.md").read_text(),
     long_description_content_type="text/markdown",
     url="https://github.com/roitberg-group/LUKE",
-    packages=find_packages(),  # Automatically find packages
-    # Runtime dependencies now declared in pyproject.toml (PEP 621).
-    install_requires=[],
-    extras_require={
-        "chem": [
-            "rdkit-pypi>=2022.9.5",
-            "openbabel-wheel>=3.1.1.post1",
-        ],
-        "dev": [
-            "pytest>=8",
-            "pytest-cov>=5",
-            "ruff>=0.5",
-            "mypy>=1.8",
-        ],
-    },
+    packages=find_packages(),
+    # Dependencies, extras, license, classifiers managed by pyproject.toml (PEP 621).
+    # Keep this file as a lightweight shim for legacy tooling only.
+    python_requires=">=3.10",
     entry_points={
         "console_scripts": [
             "luke=luke.__main__:main",
         ]
     },
-    python_requires=">=3.10",
-    # Keep minimal classifiers; license expression now lives in pyproject.toml to avoid
-    # setuptools PEP 639 deprecation errors about license classifiers.
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",

@@ -25,15 +25,36 @@ LUKE leverages TorchANI to:
 
 ## Installation
 
-LUKE relies on TorchANI as an external module, stored as a submodule:
+LUKE relies on TorchANI as a git submodule (vendored source). All runtime and development
+dependencies are declared in `pyproject.toml` (PEP 621). Install in editable mode with the
+chemistry and development extras for full functionality.
 
 ```bash
-# Clone the repository with submodules
 git clone --recursive git@github.com:roitberg-group/LUKE.git
 cd LUKE
 git submodule update --init --recursive
-pip install -v -e .
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -e .[chem,dev]
 ```
+
+### Platform Note (Torch CPU wheels)
+The CI pins `torch==2.3.1` (CPU build) via the PyTorch CPU index on Linux. On macOS and Windows the
+`+cpu` suffix is not used—just the plain version. For a local environment that mirrors CI, use the
+helper script:
+
+```bash
+bash ./dev_ci_setup.sh
+```
+
+This script:
+
+1. Creates/updates `.venv` with Python 3.11
+2. Installs pinned torch (CPU variant where available)
+3. Installs editable torchani (vendored submodule) with its dependencies
+4. Installs LUKE with chemistry + dev extras
+5. Verifies torchani internal tuple import
 
 ## Command-line interface
 
@@ -192,15 +213,42 @@ If you encounter issues while using LUKE, here are some common problems and thei
 - RDKit
 - Other dependencies (see `requirements.txt`)
 
-## Running Tests
+## Running Tests & Quality Gates
 
-To run the tests, use the following command:
+After installation (or via `dev_ci_setup.sh`):
 
 ```bash
-pytest tests/
+ruff check luke tests
+mypy luke
+pytest --disable-warnings --cov=luke
 ```
 
-This will execute all test cases in the `tests/` directory and provide a summary of the results.
+To build distribution artifacts locally:
+
+```bash
+python -m build --sdist --wheel --outdir dist
+twine check dist/*
+```
+
+Or run everything through the Makefile target (see below):
+
+```bash
+make ci
+```
+
+### Local CI Mirror
+`dev_ci_setup.sh` + `make ci` closely emulate the GitHub Actions workflow for reproducibility before pushing.
+
+## Makefile Targets
+
+Common developer targets are provided:
+
+```makefile
+make ci      # Full lint/type/test/build cycle
+make lint    # Ruff lint
+make type    # mypy type check
+make test    # pytest with coverage
+```
 
 ## Contributing
 
