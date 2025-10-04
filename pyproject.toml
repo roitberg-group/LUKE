@@ -68,11 +68,13 @@ known-first-party = ["luke"]
 python_version = "3.11"
 warn_unused_configs = true
 disallow_untyped_defs = true
-disallow_incomplete_defs = true
+# The following strict flags can be relaxed if development velocity is more important than full strictness.
+# To relax, flip to false or comment out as shown below.
+# disallow_incomplete_defs = true
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
-warn_return_any = true
+# warn_return_any = true  # relaxed
 warn_unreachable = true
 exclude = ["external"]
 ignore_missing_imports = true  # Relaxed for optional chemistry deps

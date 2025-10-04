@@ -7,17 +7,22 @@
 # - add argparser commands for inputs / outputs
 # - make it so that the script actually saves things, probably
 
+from __future__ import annotations
+
 import os
+from pathlib import Path
+from typing import Iterable
 
 import pandas as pd
 from ase import Atoms
 from ase.visualize.plot import plot_atoms
 from matplotlib import pyplot as plt
 
+# local path; adjust or guard before production use
 df = pd.read_pickle('/home/nick/filtered_1x_first_w_stdev.pkl')
 
 
-def count_ones(lst):
+def count_ones(lst: object) -> int:
     if isinstance(lst, list):
         return sum(1 for val in lst if val == 1)
     return 0

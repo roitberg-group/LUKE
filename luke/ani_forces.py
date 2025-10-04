@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 import argparse
 from pathlib import Path
+from typing import Iterable, Sequence, Tuple
 
 import pandas as pd
 import torch
 import torchani
+from torch import Tensor
 from torchani.datasets import ANIDataset
 from torchani.units import hartree2kcalpermol
 from tqdm import tqdm
@@ -29,8 +33,8 @@ class ANIForceCalculator:
         self.threshold = threshold
 
     def process_structure(
-        self, species: torch.Tensor, coordinates: torch.Tensor
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, float, float] | None:
+        self, species: Tensor, coordinates: Tensor
+    ) -> tuple[Tensor, Tensor, Tensor, float, float, float] | None:
         """
         Compute ANI energies, force uncertainty, and flag outlier atoms for a single structure.
         Returns None if weighted_stdev ≤ 3.5.
@@ -62,8 +66,8 @@ class ANIForceCalculator:
         return species.cpu(), coordinates.cpu(), good_or_bad, energy_mean, energy_qbc, weighted_stdev
 
     def process_dataset(
-        self, dataset_path: str, batch_size: int = 2500, include_energy: bool = True
-    ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+        self, dataset_path: str | Path, batch_size: int = 2500, include_energy: bool = True
+    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Process an H5 or XYZ dataset and batch valid structures/results."""
         dataset_path = Path(dataset_path)
         species_list: list[torch.Tensor] = []
@@ -136,7 +140,7 @@ class ANIForceCalculator:
         )
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parses command-line arguments."""
     parser = argparse.ArgumentParser(
         description="Compute ANI energy, forces, and uncertainty.")
@@ -153,7 +157,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     """Main execution function when running as a script."""
     args = parse_args()
 

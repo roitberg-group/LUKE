@@ -4,22 +4,53 @@ Provides reading/writing of extended XYZ, simple hashing, and helper writers
 for Gaussian & SLURM scripts. Relies on TorchANI for atomic metadata.
 """
 
+from __future__ import annotations
+
 import hashlib
 import os
 import shlex
 from pathlib import Path
+from typing import Iterable, overload, Sequence, Literal
 
 import torch
 from torch import Tensor
-from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE  # type: ignore
-from torchani.utils import pad_atomic_properties  # type: ignore
+from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE
+from torchani.utils import pad_atomic_properties
 
 __all__ = ["read_xyz", "write_xyz", "hash_xyz_coordinates",
            "write_gaussian_input", "write_slurm"]
 
 
 class IOErrorLUKE(Exception):
+    """Domain specific I/O error for LUKE utilities."""
     pass
+
+
+@overload
+def read_xyz(
+    path: str | Path,
+    dtype: torch.dtype | None = ...,
+    device: torch.device | str | int | None = ...,
+    detect_padding: bool = ...,
+    pad_species_value: int = ...,
+    dividing_char: str = ...,
+    return_comments: Literal[False] = ...,  # when False -> no comments list
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
+    ...
+
+
+@overload
+def read_xyz(
+    path: str | Path,
+    dtype: torch.dtype | None = ...,
+    device: torch.device | str | int | None = ...,
+    detect_padding: bool = ...,
+    pad_species_value: int = ...,
+    dividing_char: str = ...,
+    *,  # force keyword for clarity
+    return_comments: Literal[True],
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None, list[str]]:
+    ...
 
 
 def read_xyz(
@@ -30,7 +61,7 @@ def read_xyz(
     pad_species_value: int = 100,
     dividing_char: str = ">",
     return_comments: bool = False,
-) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None]:
+) -> tuple[Tensor, Tensor, Tensor | None, Tensor | None] | tuple[Tensor, Tensor, Tensor | None, Tensor | None, list[str]]:
     """
     Read an (extended) XYZ file and return atomic species, coordinates, and (optionally) cell data.
 
@@ -164,9 +195,11 @@ def read_xyz(
     pad_properties = pad_atomic_properties(properties)
     pbc = torch.tensor([True, True, True],
                        device=device) if cell is not None else None
+    species_tensor: Tensor = pad_properties["species"]
+    coords_tensor: Tensor = pad_properties["coordinates"]
     if return_comments:
-        return pad_properties["species"], pad_properties["coordinates"], cell, pbc, comments_list  # type: ignore  # noqa: E501
-    return pad_properties["species"], pad_properties["coordinates"], cell, pbc
+        return species_tensor, coords_tensor, cell, pbc, comments_list
+    return species_tensor, coords_tensor, cell, pbc
 
 
 def write_xyz(
@@ -264,72 +297,87 @@ def write_xyz(
                     f"{symbol} {atom[0]:.10f} {atom[1]:.10f} {atom[2]:.10f}\n")
 
 
-def hash_xyz_coordinates(filepath):
-    """Generate MD5 hash for the coordinates in an XYZ file."""
+def hash_xyz_coordinates(filepath: str | Path) -> str | None:
+    """Generate an MD5 hash for (non-header/footer) coordinates in an XYZ file.
+
+    Returns None if the file cannot be read.
+    """
     hasher = hashlib.md5()
     try:
-        with open(filepath) as f:
-            # Skip the first two and the last line -- fix depending on how xyz files are written
-            lines = f.readlines()[2:-1]
-            for line in lines:
-                hasher.update(line.encode('utf-8'))
+        with open(filepath, encoding="utf-8") as f:
+            # Skip the first two and the last line -- adjust if format changes
+            for line in f.readlines()[2:-1]:
+                hasher.update(line.encode("utf-8"))
         return hasher.hexdigest()
-    except IOErrorLUKE as e:
+    except OSError as e:  # pragma: no cover - rarely triggered
         print(f"Error reading file {filepath}: {e}")
         return None
 
 
-def remove_duplicate_xyz_files(file_path):
-    seen_hashes = set()
+def remove_duplicate_xyz_files(file_path: str | Path) -> None:
+    """Delete duplicate XYZ files (same coordinate hash) in a directory."""
+    seen_hashes: set[str] = set()
     duplicate_count = 0
-
+    file_path = str(file_path)
     for filename in os.listdir(file_path):
-        if filename.endswith(".xyz"):
-            filepath = os.path.join(file_path, filename)
-            file_hash = hash_xyz_coordinates(filepath)
-            if file_hash is None:
-                continue
-
-            if file_hash in seen_hashes:
-                os.remove(filepath)
-                duplicate_count += 1
-                print(f"Deleted duplicate file: {filename}")
-            else:
-                seen_hashes.add(file_hash)
-
+        if not filename.endswith(".xyz"):
+            continue
+        filepath = os.path.join(file_path, filename)
+        file_hash = hash_xyz_coordinates(filepath)
+        if file_hash is None:
+            continue
+        if file_hash in seen_hashes:
+            os.remove(filepath)
+            duplicate_count += 1
+            print(f"Deleted duplicate file: {filename}")
+        else:
+            seen_hashes.add(file_hash)
     print(f"Total duplicate files deleted: {duplicate_count}")
 
 
-def write_gaussian_input(symbols, coordinates, file_name, theory='B3LYP', basis_set='6-31G(d)'):
-    # TO DO:
-    # Input should be species, convert to symbols
-    # ???
-    header = f"%chk={file_name}.chk\n# {theory}/{basis_set} SP\n\nTitle Card Required\n\n0 1\n"
-    molecule_data = "\n".join([f"{symbol} {' '.join(map(str, coord))}" for symbol, coord in zip(
-        symbols, coordinates, strict=False)])
-    footer = "\n\n"
+def write_gaussian_input(
+    symbols: Sequence[str],
+    coordinates: Sequence[Sequence[float]],
+    file_name: str | Path,
+    theory: str = "B3LYP",
+    basis_set: str = "6-31G(d)",
+) -> None:
+    """Write a minimal Gaussian single-point input file (.com).
 
-    with open(f"{file_name}.com", "w") as f:
+    Parameters
+    ----------
+    symbols : sequence of element symbols
+    coordinates : iterable of (x, y, z)
+    file_name : destination file stem (without extension)
+    theory : level of theory (route section)
+    basis_set : basis set string
+    """
+    file_stem = Path(file_name)
+    header = f"%chk={file_stem.name}.chk\n# {theory}/{basis_set} SP\n\nTitle Card Required\n\n0 1\n"
+    molecule_data = "\n".join(
+        f"{sym} {x:.8f} {y:.8f} {z:.8f}" for sym, (x, y, z) in zip(symbols, coordinates, strict=False)
+    )
+    footer = "\n\n"
+    with open(f"{file_stem}.com", "w", encoding="utf-8") as f:
         f.write(header + molecule_data + footer)
 
-    # Example usage
-    # create_gaussian_com_file(['H', 'O', 'H'], [[0, 0, 0], [0, 0, 1], [0, 1, 0]], "water_molecule")
 
-
-def write_slurm(com_file, script_name):
-    script_content = f"""
-    #!/bin/bash
-    #SBATCH --job-name={com_file}
-    #SBATCH --output={com_file}.out
-    #SBATCH --error={com_file}.err
-    #SBATCH --time=01:00:00
-    #SBATCH --partition=your_partition
-    #SBATCH --mem=4GB
-
-    module load gaussian
-    g09 < {com_file}.com > {com_file}.log
-    """
-    with open(f"{script_name}.sh", "w") as f:
+def write_slurm(com_file: str | Path, script_name: str | Path) -> None:
+    """Write a simple SLURM submission script for a Gaussian job."""
+    com_file = Path(com_file)
+    script_name = Path(script_name)
+    script_content = (
+        "#!/bin/bash\n"
+        f"#SBATCH --job-name={com_file.name}\n"
+        f"#SBATCH --output={com_file.name}.out\n"
+        f"#SBATCH --error={com_file.name}.err\n"
+        "#SBATCH --time=01:00:00\n"
+        "#SBATCH --partition=your_partition\n"
+        "#SBATCH --mem=4GB\n\n"
+        "module load gaussian\n"
+        f"g09 < {com_file.name}.com > {com_file.name}.log\n"
+    )
+    with open(f"{script_name}.sh", "w", encoding="utf-8") as f:
         f.write(script_content)
 
 # Example usage

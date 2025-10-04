@@ -5,7 +5,10 @@ This module connects force/uncertainty computation, isolation of high-error atom
 and optional sanitization into a cohesive workflow.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Iterable
 
 import torchani
 from rich.progress import track
