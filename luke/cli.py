@@ -3,8 +3,6 @@
 Provides subcommands for running the full pipeline and individual steps.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import typer

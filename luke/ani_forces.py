@@ -8,7 +8,7 @@ from torchani.datasets import ANIDataset
 from torchani.units import hartree2kcalpermol
 from tqdm import tqdm
 
-from luke.io_utils import read_xyz
+from .io_utils import read_xyz
 
 # Fix the threshold -- 0.5 was determined from kcal/mol*A data
 

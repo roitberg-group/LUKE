@@ -3,8 +3,6 @@
 Lightweight, no RDKit dependency. Works with luke.io_utils read/write tensors.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 import numpy as np

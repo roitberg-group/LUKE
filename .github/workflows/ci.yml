@@ -25,12 +25,14 @@ jobs:
             requirements.txt
             setup.py
             pyproject.toml
+            external/torchani/setup.py
+            external/torchani/pyproject.toml
       - name: Cache virtualenv
         id: cache-venv
         uses: actions/cache@v4
         with:
           path: .venv
-          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py') }}
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
           restore-keys: |
             venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
       - name: Cache torch & pip wheels (extras)
@@ -40,7 +42,7 @@ jobs:
           path: |
             ~/.cache/pip
             ~/.cache/torch
-          key: piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py') }}
+          key: piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('pyproject.toml', 'requirements.txt', 'setup.py', 'external/torchani/setup.py', 'external/torchani/pyproject.toml') }}
           restore-keys: |
             piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
       - name: Show cache key context
@@ -58,13 +60,15 @@ jobs:
           echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
           . .venv/bin/activate
           pip install --upgrade pip
-          # Always install with deps to avoid missing packages on stale cache
+          # Install TorchANI from vendored source to guarantee presence of torchani.tuples
+          pip install -e external/torchani
+          # Always install LUKE with dev/chem extras after local torchani
           pip install -e .[dev,chem]
       - name: Verify environment
         run: |
           . .venv/bin/activate
           python -V
-          python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__)"
+          python -c "import torch, torchani, pathlib; print('torch', torch.__version__, 'torchani', torchani.__version__); print('torchani file:', torchani.__file__); p=pathlib.Path(torchani.__file__).with_name('tuples.py'); print('tuples.py exists:', p.exists()); from torchani.tuples import SpeciesCoordinates; print('SpeciesCoordinates import OK')"
           pip list | grep -E 'torch|torchani|ruff' || true
       - name: Lint
         id: lint

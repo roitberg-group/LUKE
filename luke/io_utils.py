@@ -1,4 +1,8 @@
-# This module contains functions for input/output operations, used in the first and last stages of LUKE
+"""I/O utilities for LUKE.
+
+Provides reading/writing of extended XYZ, simple hashing, and helper writers
+for Gaussian & SLURM scripts. Relies on TorchANI for atomic metadata.
+"""
 
 import hashlib
 import os
@@ -7,22 +11,8 @@ from pathlib import Path
 
 import torch
 from torch import Tensor
-
-try:  # Graceful fallback if torchani not installed (e.g., minimal CI paths)
-    from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE  # type: ignore
-    from torchani.utils import pad_atomic_properties  # type: ignore
-except Exception:  # pragma: no cover
-    # Minimal fallback tables (extend as needed). Ensures lightweight tests still run.
-    ATOMIC_NUMBER = {"H": 1, "C": 6, "N": 7, "O": 8}
-    PERIODIC_TABLE = {v: k for k, v in ATOMIC_NUMBER.items()}
-
-    def pad_atomic_properties(props):  # type: ignore
-        # Simple passthrough assuming uniform sizes; tests using fallback craft tiny inputs.
-        species_list = [p["species"] for p in props]
-        coords_list = [p["coordinates"] for p in props]
-        species = torch.cat(species_list, dim=0)
-        coords = torch.cat(coords_list, dim=0)
-        return {"species": species, "coordinates": coords}
+from torchani.constants import ATOMIC_NUMBER, PERIODIC_TABLE  # type: ignore
+from torchani.utils import pad_atomic_properties  # type: ignore
 
 __all__ = ["read_xyz", "write_xyz", "hash_xyz_coordinates",
            "write_gaussian_input", "write_slurm"]

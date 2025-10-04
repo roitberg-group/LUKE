@@ -1,27 +1,27 @@
+"""Isolation utilities for generating capped fragments around high-uncertainty atoms.
+
+Optional heavy deps (OpenBabel, RDKit) are imported lazily/guarded so that core
+functionality (neighbor detection, fragment writing) works without them.
+"""
+
+# Standard library
+from collections import Counter
+import tempfile
+
+# Third-party (always required for core behavior)
 import ase
 import ase.io  # ensure io submodule loaded so ase.io.write is available
+import numpy as np
 import torch
 from torchani.tuples import SpeciesCoordinates
 from torchani.utils import PERIODIC_TABLE
 
-try:
-    import openbabel  # type: ignore
-    from openbabel import pybel  # type: ignore
-except Exception:  # pragma: no cover
-    openbabel = None
-    pybel = None
+# Chemistry toolkits (required)
+import openbabel  # type: ignore
+from openbabel import pybel  # type: ignore
+from rdkit import Chem  # type: ignore
 
-try:
-    from rdkit import Chem  # type: ignore
-except Exception:  # pragma: no cover
-    Chem = None  # type: ignore
-
-import tempfile
-from collections import Counter
-
-import numpy as np
-
-from .ani_forces import ANIForceCalculator
+__all__ = ["Isolator"]
 
 
 class Isolator:
@@ -95,9 +95,7 @@ class Isolator:
         * Reads the temp file with openbabel to create a mol2 object (includes connectivity information)
         * Converts the obabel mol2 object into a rdkit.Chem molecule to print the SMILES return the molecule
         """
-        if pybel is None or Chem is None:
-            print("WARNING: RDKit/OpenBabel not installed. Skipping molecule creation.")
-            return None
+        # At this point openbabel & rdkit are expected to be installed; any ImportError would happen at module import.
         with tempfile.NamedTemporaryFile("w+") as f:
             f.write(f"{len(self.symbols)}\n")
             f.write("\n")
@@ -233,12 +231,8 @@ class Isolator:
                 self.molecule = self.create_rdkit_mol()
 
 
-if __name__ == "__main__":
-    calculator = ANIForceCalculator(model_name="ANI2xr", threshold=0.5)
+if __name__ == "__main__":  # pragma: no cover - manual usage example
+    from .ani_forces import ANIForceCalculator
 
-    # for species, coordinates, good_or_bad, energy, qbc in calculator.process_dataset("input.h5", for_pipeline=True):
-    #     isolator.process(species, coordinates, good_or_bad)
-    # if species.shape[0] == 0:
-    #     print("No structures met the weighted_stdev > 3.5 threshold. Exiting.")
-    # else:
-    #     print(f"Filtered dataset with {species.shape[0]} structures passed for isolation.")
+    calculator = ANIForceCalculator(model_name="ANI2xr", threshold=0.5)
+    # Example manual usage could be added here.
