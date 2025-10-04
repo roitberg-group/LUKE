@@ -15,6 +15,8 @@ jobs:
       PIP_DISABLE_PIP_VERSION_CHECK: 1
       PYTORCH_INDEX_URL: https://download.pytorch.org/whl/cpu
       TORCH_VERSION: 2.3.1
+      # Suppress noisy extension warnings from torchani that are not relevant for CI (we only need Python fallback)
+      TORCHANI_NO_WARN_EXTENSIONS: 1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,7 +51,7 @@ jobs:
             piptorch-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-
       - name: Show cache key context
         run: |
-          echo "Using pip cache based on requirements.txt, setup.py, pyproject.toml"
+          echo "Using pip cache based on setup.py, pyproject.toml, and vendored torchani metadata"
           echo "Venv cache hit: ${{ steps.cache-venv.outputs.cache-hit }}"
           echo "Torch/pip cache hit: ${{ steps.cache-torch.outputs.cache-hit }}"
       - name: Install dependencies (CPU torch first)
@@ -64,8 +66,10 @@ jobs:
           pip install --upgrade pip wheel
           # Install pinned CPU-only torch first to avoid downloading huge CUDA wheels
           pip install --index-url $PYTORCH_INDEX_URL torch==${TORCH_VERSION}+cpu
-          # Install TorchANI from vendored source (editable)
-          pip install -e external/torchani --no-deps
+          # Install TorchANI from vendored source (editable) WITH its declared dependencies
+          # We let pip resolve deps here so that required packages like huggingface_hub, pyarrow, zarr, h5py are present.
+          # torch is already satisfied so it will not fetch a different (CUDA) wheel.
+          pip install -e external/torchani
           # Install project extras (dev, chem) without re-solving already installed core deps
           pip install -e .[chem,dev] --no-deps
           # Ensure main runtime deps present (in case they weren't in extras separation)
