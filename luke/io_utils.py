@@ -9,8 +9,9 @@ from __future__ import annotations
 import hashlib
 import os
 import shlex
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Iterable, overload, Sequence, Literal
+from typing import Literal, overload
 
 import torch
 from torch import Tensor

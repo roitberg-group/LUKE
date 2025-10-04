@@ -107,7 +107,8 @@ class Isolator:
             fh.write(f"{len(self.symbols)}\n\n")
             for idx, symbol in enumerate(self.symbols):
                 coord = self.numpy_coordinates[idx]
-                fh.write(f"{symbol} {coord[0]:8.3} {coord[1]:8.3} {coord[2]:8.3}\n")
+                fh.write(
+                    f"{symbol} {coord[0]:8.3} {coord[1]:8.3} {coord[2]:8.3}\n")
             fh.flush()
             obabel_mol = next(pybel.readfile("xyz", fh.name))
             raw_mol2 = obabel_mol.write(format="mol2")
@@ -115,7 +116,8 @@ class Isolator:
         # RDKit stubs indicate Chem.MolFromMol2Block returns a Chem.Mol; mypy treats this as non-optional,
         # so a fallback warning branch would be flagged unreachable. We therefore assume success for typing.
         if return_smiles:
-            print("SMILES: ", Chem.MolToSmiles(Chem.RemoveHs(molecule), isomericSmiles=False))
+            print("SMILES: ", Chem.MolToSmiles(
+                Chem.RemoveHs(molecule), isomericSmiles=False))
         return molecule
 
     def classify_bad_atoms(self) -> list[list[int]]:
@@ -165,7 +167,8 @@ class Isolator:
         involved_atoms = set(bad_atom_neighbors) | {bad_atom_index}
 
         assert self.numpy_coordinates is not None and self.symbols is not None, "Call tensors_to_numpy() before isolate_atoms()"
-        modified_coords = [self.numpy_coordinates[idx] for idx in involved_atoms]
+        modified_coords = [self.numpy_coordinates[idx]
+                           for idx in involved_atoms]
         modified_symbols = [self.symbols[idx] for idx in involved_atoms]
         return modified_coords, modified_symbols
 

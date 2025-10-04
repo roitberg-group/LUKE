@@ -6,7 +6,6 @@ Lightweight, no RDKit dependency. Works with luke.io_utils read/write tensors.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import torch
@@ -22,11 +21,10 @@ def compute_connectivity(coords: ArrayLike, threshold: float = 1.8) -> np.ndarra
     coords: (..., N, 3) or (N, 3) array; operates on the last (N, 3).
     Returns an (N, N) boolean adjacency with diagonal True.
     """
-    c: np.ndarray
-    if isinstance(coords, torch.Tensor):
-        c = coords.detach().cpu().numpy()
-    else:
-        c = np.asarray(coords)
+    c: np.ndarray = (
+        coords.detach().cpu().numpy() if isinstance(
+            coords, torch.Tensor) else np.asarray(coords)
+    )
     if c.ndim == 3:
         # assume (1, N, 3)
         c = c[0]
