@@ -59,11 +59,13 @@ jobs:
           fi
           echo "$GITHUB_WORKSPACE/.venv/bin" >> $GITHUB_PATH
           . .venv/bin/activate
-          pip install --upgrade pip
-          # Install TorchANI from vendored source to guarantee presence of torchani.tuples
+          pip install --upgrade pip wheel
+          # Install TorchANI from vendored source first
           pip install -e external/torchani
-          # Always install LUKE with dev/chem extras after local torchani
+          # Install project with dev & chem extras
           pip install -e .[dev,chem]
+          # Show key dependency versions (concise)
+          python -c "import torch, torchani; print('torch', torch.__version__, 'torchani', torchani.__version__)"
       - name: Verify environment
         run: |
           . .venv/bin/activate
@@ -80,16 +82,31 @@ jobs:
           rc=$?
           if [ $rc -ne 0 ]; then echo "LINT_FAILED=1" >> $GITHUB_ENV; fi
           if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
+      - name: Type check (mypy)
+        id: mypy
+        continue-on-error: true
+        run: |
+          . .venv/bin/activate
+          set +e
+          mypy luke
+          rc=$?
+          if [ $rc -ne 0 ]; then echo "MYPY_FAILED=1" >> $GITHUB_ENV; fi
+          if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
       - name: Test (LUKE only)
         id: tests
         continue-on-error: true
         run: |
           . .venv/bin/activate
           set +e
-          pytest -q --disable-warnings tests
+          pytest --disable-warnings --cov=luke --cov-report=xml:coverage.xml
           rc=$?
           if [ $rc -ne 0 ]; then echo "TEST_FAILED=1" >> $GITHUB_ENV; fi
           if [ "$FAIL_FAST" = "1" ] && [ $rc -ne 0 ]; then exit $rc; fi
+          # Basic coverage summary
+          if [ -f coverage.xml ]; then
+            lines_total=$(grep -o 'lines-covered="[0-9]\+" lines-valid="[0-9]\+"' coverage.xml | sed -E 's/.*lines-covered="([0-9]+)" lines-valid="([0-9]+)".*/\1 \2/' | awk '{if ($2>0) printf "%.1f", ($1*100)/$2; else print 0}')
+            echo "COVERAGE_PERCENT=$lines_total" >> $GITHUB_ENV
+          fi
       - name: Build (sdist/wheel) smoke
         id: build
         continue-on-error: true
@@ -117,7 +134,7 @@ jobs:
         run: |
           fails=0
           summary="## CI Summary\n"
-          for flag in LINT_FAILED TEST_FAILED BUILD_FAILED TWINE_FAILED; do
+          for flag in LINT_FAILED MYPY_FAILED TEST_FAILED BUILD_FAILED TWINE_FAILED; do
             val=$(printenv $flag || echo 0)
             if [ "$val" = "1" ]; then
               summary+="- ❌ ${flag}\n"
@@ -126,6 +143,9 @@ jobs:
               summary+="- ✅ ${flag}\n"
             fi
           done
+          if [ -n "${COVERAGE_PERCENT}" ]; then
+            summary+="\nCoverage: ${COVERAGE_PERCENT}%\n"
+          fi
           echo "$summary" >> $GITHUB_STEP_SUMMARY
           if [ $fails -ne 0 ]; then
             echo "One or more steps failed." >&2

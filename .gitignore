@@ -5,6 +5,8 @@ luke.egg-info
 .DS_Store
 */.DS_Store
 tests/test_outputs
+.ruff_cache
+.vscode
 
 *.xyz
 *.h5

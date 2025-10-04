@@ -5,21 +5,20 @@ functionality (neighbor detection, fragment writing) works without them.
 """
 
 # Standard library
-from collections import Counter
 import tempfile
+from collections import Counter
 
 # Third-party (always required for core behavior)
 import ase
 import ase.io  # ensure io submodule loaded so ase.io.write is available
 import numpy as np
-import torch
-from torchani.tuples import SpeciesCoordinates
-from torchani.utils import PERIODIC_TABLE
 
 # Chemistry toolkits (required)
-import openbabel  # type: ignore
+import torch
 from openbabel import pybel  # type: ignore
 from rdkit import Chem  # type: ignore
+from torchani.tuples import SpeciesCoordinates
+from torchani.utils import PERIODIC_TABLE
 
 __all__ = ["Isolator"]
 
